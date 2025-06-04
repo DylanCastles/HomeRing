@@ -57,6 +57,10 @@
   <!-- Estado general -->
   <div id="estadoGeneral" class="text-center mb-3">Conectados: 0</div>
 
+<!-- Texto que indica quién está llamando -->
+<div id="textoLlamada" class="text-center mb-3 fw-bold" style="color: #dc3545; display:none;"></div>
+
+
   <!-- Lista de usuarios -->
   <div id="usuarios" class="d-grid gap-3"></div>
 
@@ -160,6 +164,8 @@
     actualizarInterfazUsuarios();
   });
 
+const textoLlamada = document.getElementById('textoLlamada');
+
 function escucharLlamadas() {
   if (!usuarioId) return;
 
@@ -168,43 +174,47 @@ function escucharLlamadas() {
     if (data && !sonando) {
       sonando = true;
       document.body.classList.add('llamado');
-      
+
+      // Mostrar quién llama
+      const idLlamador = data.llamadorId;
+      const nombreLlamador = usuariosConectados[idLlamador] || 'Alguien';
+      textoLlamada.textContent = `Te está llamando: ${nombreLlamador}`;
+      textoLlamada.style.display = 'block';
+
       // Primero suena la alarma
       sonido.currentTime = 0;
       sonido.play().catch(e => console.error('Error al reproducir alarma:', e));
 
-      // Cuando termine el sonido, se reproduce la voz
       sonido.onended = () => {
-        // Obtener nombre del que llama
-        const idLlamador = data.llamadorId;
-        const nombreLlamador = usuariosConectados[idLlamador] || 'Alguien';
         const mensaje = `Te está llamando ${nombreLlamador}`;
 
-        // Usamos Web Speech API para hablar
         if ('speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(mensaje);
           utterance.lang = 'es-ES';
 
           utterance.onend = () => {
-            // Terminado el TTS, se limpia la llamada y estado
+            // Terminado TTS, limpiar todo
             llamadasRef.child(usuarioId).remove();
             document.body.classList.remove('llamado');
             sonando = false;
-            sonido.onended = null; // limpiar handler para evitar repetir
+            textoLlamada.style.display = 'none';
+            sonido.onended = null;
           };
 
           speechSynthesis.speak(utterance);
         } else {
-          // Si no hay soporte TTS, limpiar igual después del pitido
+          // Sin TTS, limpiar igual
           llamadasRef.child(usuarioId).remove();
           document.body.classList.remove('llamado');
           sonando = false;
+          textoLlamada.style.display = 'none';
           sonido.onended = null;
         }
       };
     }
   });
 }
+
 
 
 
