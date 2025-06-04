@@ -12,10 +12,6 @@
   <style>
     body.llamado {
       background-color: #dc3545 !important;
-      color: white;
-    }
-
-    body.llamado #textoLlamada {
       color: white !important;
     }
 
@@ -59,7 +55,7 @@
 
   <div id="estadoGeneral" class="text-center mb-3">Conectados: 0</div>
 
-  <div id="textoLlamada" class="text-center mb-3 fw-bold" style="display:none;"></div>
+  <div id="textoLlamada" class="text-center mb-3 fw-bold" style="color: white; display:none;"></div>
 
   <div id="usuarios" class="d-grid gap-3"></div>
 
@@ -126,9 +122,10 @@
     usuarioId = generarId();
     usuarioNombre = nombre;
 
+    // Guardar usuario y programar borrado on disconnect
     usuariosRef.child(usuarioId).set(usuarioNombre);
-    llamadasRef.child(usuarioId).onDisconnect().remove();
     usuariosRef.child(usuarioId).onDisconnect().remove();
+    llamadasRef.child(usuarioId).onDisconnect().remove();
 
     nombreForm.classList.add('d-none');
     estadoUsuario.classList.remove('d-none');
@@ -178,7 +175,6 @@
 
         const idLlamador = data.llamadorId;
 
-        // Traemos el nombre directamente desde Firebase
         usuariosRef.child(idLlamador).once('value').then(nombreSnap => {
           const nombreLlamador = nombreSnap.val() || 'Alguien';
 
