@@ -10,33 +10,53 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 
   <style>
-    body.llamado {
-      background-color: #dc3545 !important;
-      color: white !important;
-    }
+  body.llamado {
+    background-color: #dc3545 !important; /* rojo */
+    color: white !important; /* texto blanco */
+  }
 
-    .fade-in {
-      animation: fadeIn 0.5s ease-in-out;
-    }
+  body.llamado * {
+    color: white !important; /* forzar texto blanco en todo */
+  }
 
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+  body.llamado button {
+    background-color: transparent !important;
+    border-color: white !important;
+    color: white !important;
+  }
 
-    .btn.llamando {
-      background-color: #198754 !important;
-      color: white !important;
-      position: relative;
-    }
+  body.llamado button.llamando {
+    background-color: white !important;
+    color: #dc3545 !important;
+    border-color: white !important;
+  }
 
-    .btn.llamando::after {
-      content: "📞";
-      position: absolute;
-      right: 12px;
-      font-size: 1.2em;
-    }
-  </style>
+  #textoLlamada {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white !important;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .btn.llamando {
+    position: relative;
+  }
+
+  .btn.llamando::after {
+    content: "📞";
+    position: absolute;
+    right: 12px;
+    font-size: 1.2em;
+  }
+</style>
 </head>
 <body class="bg-light">
 
