@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Timbre Remoto</title>
+  <link rel="icon" href="data:,"><!-- Favicon vacío para evitar 404 -->
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -23,12 +24,12 @@
       to { opacity: 1; }
     }
 
-    /* Estilo para botón llamando */
     .btn.llamando {
-      background-color: #198754 !important; /* Verde bootstrap */
+      background-color: #198754 !important;
       color: white !important;
       position: relative;
     }
+
     .btn.llamando::after {
       content: "📞";
       position: absolute;
@@ -42,35 +43,27 @@
 <main class="container py-5">
   <h1 class="text-center mb-4">🔔 Timbre Remoto</h1>
 
-  <!-- Formulario nombre -->
   <div id="nombreForm" class="text-center mb-4">
     <input type="text" id="nombreInput" class="form-control form-control-lg mb-3" placeholder="¿Cómo quieres que te llamen?" />
     <button class="btn btn-primary btn-lg" id="btnUnirse">Unirse</button>
   </div>
 
-  <!-- Estado conectado -->
   <div id="estadoUsuario" class="text-center mb-4 d-none">
     <p id="infoConectado" class="fw-bold"></p>
     <button class="btn btn-danger btn-lg" id="btnSalir">Salir</button>
   </div>
 
-  <!-- Estado general -->
   <div id="estadoGeneral" class="text-center mb-3">Conectados: 0</div>
 
-<!-- Texto que indica quién está llamando -->
-<div id="textoLlamada" class="text-center mb-3 fw-bold" style="color: #dc3545; display:none;"></div>
+  <div id="textoLlamada" class="text-center mb-3 fw-bold" style="color: #dc3545; display:none;"></div>
 
-
-  <!-- Lista de usuarios -->
   <div id="usuarios" class="d-grid gap-3"></div>
 
-  <!-- Llamar a todos -->
   <div class="text-center mt-4 d-none" id="grupoLlamada">
     <button class="btn btn-warning btn-lg" id="btnLlamarTodos">🔊 Llamar a todos</button>
   </div>
 </main>
 
-<!-- Sonido -->
 <audio id="sonido" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
 
 <!-- Firebase -->
@@ -105,13 +98,15 @@
   const grupoLlamada = document.getElementById('grupoLlamada');
   const btnLlamarTodos = document.getElementById('btnLlamarTodos');
   const sonido = document.getElementById('sonido');
+  const textoLlamada = document.getElementById('textoLlamada');
 
   let usuarioId = null;
   let usuarioNombre = null;
   let sonando = false;
   let usuariosConectados = {};
-  let botonesUsuarios = {};  // Para mapear idUsuario => botón DOM
-  let llamandoAId = null;    // ID usuario a quien llamo (para el botón resaltado)
+  let botonesUsuarios = {};
+  let llamandoAId = null;
+  let escuchandoLlamadasActivo = false;
 
   function generarId() {
     return 'user-' + Math.floor(Math.random() * 100000);
@@ -134,8 +129,6 @@
     nombreForm.classList.add('d-none');
     estadoUsuario.classList.remove('d-none');
     infoConectado.textContent = `Conectado como: ${usuarioNombre}`;
-
-    escucharLlamadas();
   };
 
   btnSalir.onclick = () => {
@@ -154,69 +147,63 @@
       grupoLlamada.classList.add('d-none');
       document.body.classList.remove('llamado');
       llamandoAId = null;
-      // Quitar clases botones
       Object.values(botonesUsuarios).forEach(btn => btn.classList.remove('llamando'));
+      textoLlamada.style.display = 'none';
     }
   };
 
   usuariosRef.on('value', snapshot => {
+    const yaEstabaVacio = Object.keys(usuariosConectados).length === 0;
     usuariosConectados = snapshot.val() || {};
     actualizarInterfazUsuarios();
-  });
 
-const textoLlamada = document.getElementById('textoLlamada');
-
-function escucharLlamadas() {
-  if (!usuarioId) return;
-
-  llamadasRef.child(usuarioId).on('value', snapshot => {
-    const data = snapshot.val();
-    if (data && !sonando) {
-      sonando = true;
-      document.body.classList.add('llamado');
-
-      // Mostrar quién llama
-      const idLlamador = data.llamadorId;
-      const nombreLlamador = usuariosConectados[idLlamador] || 'Alguien';
-      textoLlamada.textContent = `Te está llamando: ${nombreLlamador}`;
-      textoLlamada.style.display = 'block';
-
-      // Primero suena la alarma
-      sonido.currentTime = 0;
-      sonido.play().catch(e => console.error('Error al reproducir alarma:', e));
-
-      sonido.onended = () => {
-        const mensaje = `Te está llamando ${nombreLlamador}`;
-
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(mensaje);
-          utterance.lang = 'es-ES';
-
-          utterance.onend = () => {
-            // Terminado TTS, limpiar todo
-            llamadasRef.child(usuarioId).remove();
-            document.body.classList.remove('llamado');
-            sonando = false;
-            textoLlamada.style.display = 'none';
-            sonido.onended = null;
-          };
-
-          speechSynthesis.speak(utterance);
-        } else {
-          // Sin TTS, limpiar igual
-          llamadasRef.child(usuarioId).remove();
-          document.body.classList.remove('llamado');
-          sonando = false;
-          textoLlamada.style.display = 'none';
-          sonido.onended = null;
-        }
-      };
+    if (yaEstabaVacio && usuarioId && !escuchandoLlamadasActivo) {
+      escucharLlamadas();
+      escuchandoLlamadasActivo = true;
     }
   });
-}
 
+  function escucharLlamadas() {
+    if (!usuarioId) return;
 
+    llamadasRef.child(usuarioId).on('value', snapshot => {
+      const data = snapshot.val();
+      if (data && !sonando) {
+        sonando = true;
+        document.body.classList.add('llamado');
 
+        const idLlamador = data.llamadorId;
+        const nombreLlamador = usuariosConectados[idLlamador] || 'Alguien';
+        textoLlamada.textContent = `Te está llamando: ${nombreLlamador}`;
+        textoLlamada.style.display = 'block';
+
+        sonido.currentTime = 0;
+        sonido.play().catch(e => console.error('Error al reproducir alarma:', e));
+
+        sonido.onended = () => {
+          const mensaje = `Te está llamando ${nombreLlamador}`;
+
+          if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(mensaje);
+            utterance.lang = 'es-ES';
+
+            utterance.onend = () => limpiarLlamada();
+            speechSynthesis.speak(utterance);
+          } else {
+            limpiarLlamada();
+          }
+        };
+      }
+    });
+  }
+
+  function limpiarLlamada() {
+    llamadasRef.child(usuarioId).remove();
+    document.body.classList.remove('llamado');
+    sonando = false;
+    textoLlamada.style.display = 'none';
+    sonido.onended = null;
+  }
 
   function llamarA(id) {
     if (!usuarioId) return;
@@ -225,7 +212,6 @@ function escucharLlamadas() {
   }
 
   function marcarBotonLlamando(idLlamado) {
-    // Si había otro marcado, quitar clase
     if (llamandoAId && botonesUsuarios[llamandoAId]) {
       botonesUsuarios[llamandoAId].classList.remove('llamando');
     }
@@ -265,7 +251,6 @@ function escucharLlamadas() {
 
     ids.forEach(id => {
       if (id === usuarioId) return;
-
       cantidadOtros++;
 
       const nombre = usuariosConectados[id];
@@ -274,7 +259,6 @@ function escucharLlamadas() {
       btn.textContent = `🔔 Llamar a ${nombre}`;
       btn.onclick = () => llamarA(id);
       usuariosDiv.appendChild(btn);
-
       botonesUsuarios[id] = btn;
     });
 
@@ -286,7 +270,6 @@ function escucharLlamadas() {
   }
 </script>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
