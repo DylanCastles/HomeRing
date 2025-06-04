@@ -11,12 +11,8 @@
 
   <style>
     body.llamado {
-      background-color: #dc3545 !important;
-      color: white !important;
-    }
-
-    body.llamado * {
-      color: white !important;
+      background-color: #dc3545 !important; /* Fondo rojo */
+      color: white !important;             /* Texto blanco */
     }
 
     .fade-in {
@@ -126,9 +122,18 @@
     usuarioId = generarId();
     usuarioNombre = nombre;
 
-    usuariosRef.child(usuarioId).set(usuarioNombre);
-    llamadasRef.child(usuarioId).onDisconnect().remove();
-    usuariosRef.child(usuarioId).onDisconnect().remove();
+    const usuarioRef = usuariosRef.child(usuarioId);
+    const llamadaRef = llamadasRef.child(usuarioId);
+
+    usuarioRef.set(usuarioNombre).then(() => {
+      // Configuramos onDisconnect para limpiar al desconectarse (cerrar/reload)
+      usuarioRef.onDisconnect().remove();
+      llamadaRef.onDisconnect().remove();
+    }).catch(err => {
+      alert("Error al conectar con la base de datos: " + err.message);
+      usuarioId = null;
+      usuarioNombre = null;
+    });
 
     nombreForm.classList.add('d-none');
     estadoUsuario.classList.remove('d-none');
@@ -150,7 +155,6 @@
       estadoGeneral.textContent = 'Conectados: 0';
       grupoLlamada.classList.add('d-none');
       document.body.classList.remove('llamado');
-      document.body.classList.add('bg-light');
       llamandoAId = null;
       Object.values(botonesUsuarios).forEach(btn => btn.classList.remove('llamando'));
       textoLlamada.style.display = 'none';
@@ -175,7 +179,6 @@
       const data = snapshot.val();
       if (data && !sonando) {
         sonando = true;
-        document.body.classList.remove('bg-light');
         document.body.classList.add('llamado');
 
         const idLlamador = data.llamadorId;
@@ -209,7 +212,6 @@
   function limpiarLlamada() {
     llamadasRef.child(usuarioId).remove();
     document.body.classList.remove('llamado');
-    document.body.classList.add('bg-light');
     sonando = false;
     textoLlamada.style.display = 'none';
     sonido.onended = null;
