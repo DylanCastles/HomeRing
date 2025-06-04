@@ -123,8 +123,6 @@
     usuarioNombre = nombre;
 
     usuariosRef.child(usuarioId).set(usuarioNombre);
-    llamadasRef.child(usuarioId).onDisconnect().remove();
-    usuariosRef.child(usuarioId).onDisconnect().remove();
 
     nombreForm.classList.add('d-none');
     estadoUsuario.classList.remove('d-none');
@@ -164,42 +162,40 @@
   });
 
   function escucharLlamadas() {
-  if (!usuarioId) return;
+    if (!usuarioId) return;
 
-  llamadasRef.child(usuarioId).on('value', snapshot => {
-    const data = snapshot.val();
-    if (data && !sonando) {
-      sonando = true;
-      document.body.classList.add('llamado');
+    llamadasRef.child(usuarioId).on('value', snapshot => {
+      const data = snapshot.val();
+      if (data && !sonando) {
+        sonando = true;
+        document.body.classList.add('llamado');
 
-      const idLlamador = data.llamadorId;
+        const idLlamador = data.llamadorId;
 
-      // 🔽 Traemos el nombre directamente desde Firebase
-      usuariosRef.child(idLlamador).once('value').then(nombreSnap => {
-        const nombreLlamador = nombreSnap.val() || 'Alguien';
+        usuariosRef.child(idLlamador).once('value').then(nombreSnap => {
+          const nombreLlamador = nombreSnap.val() || 'Alguien';
 
-        textoLlamada.textContent = `Te está llamando: ${nombreLlamador}`;
-        textoLlamada.style.display = 'block';
+          textoLlamada.textContent = `Te está llamando: ${nombreLlamador}`;
+          textoLlamada.style.display = 'block';
 
-        sonido.currentTime = 0;
-        sonido.play().catch(e => console.error('Error al reproducir alarma:', e));
+          sonido.currentTime = 0;
+          sonido.play().catch(e => console.error('Error al reproducir alarma:', e));
 
-        sonido.onended = () => {
-          const mensaje = `Te está llamando ${nombreLlamador}`;
-
-          if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(mensaje);
-            utterance.lang = 'es-ES';
-            utterance.onend = () => limpiarLlamada();
-            speechSynthesis.speak(utterance);
-          } else {
-            limpiarLlamada();
-          }
-        };
-      });
-    }
-  });
-}
+          sonido.onended = () => {
+            const mensaje = `Te está llamando ${nombreLlamador}`;
+            if ('speechSynthesis' in window) {
+              const utterance = new SpeechSynthesisUtterance(mensaje);
+              utterance.lang = 'es-ES';
+              utterance.onend = () => limpiarLlamada();
+              speechSynthesis.speak(utterance);
+            } else {
+              limpiarLlamada();
+            }
+          };
+        });
+      }
+    });
+  }
 
   function limpiarLlamada() {
     llamadasRef.child(usuarioId).remove();
@@ -272,6 +268,14 @@
       botonesUsuarios[llamandoAId].classList.add('llamando');
     }
   }
+
+  // 🔁 Manejar cierre de pestaña para limpiar usuario y llamadas
+  window.addEventListener('beforeunload', () => {
+    if (usuarioId) {
+      usuariosRef.child(usuarioId).remove();
+      llamadasRef.child(usuarioId).remove();
+    }
+  });
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
