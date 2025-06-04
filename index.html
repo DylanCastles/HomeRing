@@ -164,16 +164,20 @@
   });
 
   function escucharLlamadas() {
-    if (!usuarioId) return;
+  if (!usuarioId) return;
 
-    llamadasRef.child(usuarioId).on('value', snapshot => {
-      const data = snapshot.val();
-      if (data && !sonando) {
-        sonando = true;
-        document.body.classList.add('llamado');
+  llamadasRef.child(usuarioId).on('value', snapshot => {
+    const data = snapshot.val();
+    if (data && !sonando) {
+      sonando = true;
+      document.body.classList.add('llamado');
 
-        const idLlamador = data.llamadorId;
-        const nombreLlamador = usuariosConectados[idLlamador] || 'Alguien';
+      const idLlamador = data.llamadorId;
+
+      // 🔽 Traemos el nombre directamente desde Firebase
+      usuariosRef.child(idLlamador).once('value').then(nombreSnap => {
+        const nombreLlamador = nombreSnap.val() || 'Alguien';
+
         textoLlamada.textContent = `Te está llamando: ${nombreLlamador}`;
         textoLlamada.style.display = 'block';
 
@@ -186,16 +190,16 @@
           if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(mensaje);
             utterance.lang = 'es-ES';
-
             utterance.onend = () => limpiarLlamada();
             speechSynthesis.speak(utterance);
           } else {
             limpiarLlamada();
           }
         };
-      }
-    });
-  }
+      });
+    }
+  });
+}
 
   function limpiarLlamada() {
     llamadasRef.child(usuarioId).remove();
